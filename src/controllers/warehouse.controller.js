@@ -1,4 +1,4 @@
-import prisma from "../../prisma/client.js";
+import prisma from '../config/db.js'
 import { success, error } from "../utils/response.js";
 
 export async function getWarehouses(req, res) {

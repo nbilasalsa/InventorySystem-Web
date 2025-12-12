@@ -4,40 +4,38 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-}
-
-enum Role {
-  USER
-  ADMIN
+  url      = env("DATABASE_URL") 
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  email     String    @unique
   password  String
   name      String
-  role      Role     @default(USER)
+  role      String    @default("USER") 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([email])
+  @@index([username])
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      String
+  id          Int       @id @default(autoincrement())
+  name        String
   description String?
-  products  Product[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([name])
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
-  sku         String   @unique
+  sku         String    @unique
   description String?
   price       Float
   categoryId  Int
@@ -51,7 +49,7 @@ model Product {
 }
 
 model Warehouse {
-  id        Int     @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   location  String?
   stocks    Stock[]

@@ -1,3 +1,5 @@
-const morgan = require('morgan');
+import morgan from 'morgan';
 
-module.exports = morgan(':date[iso] :remote-addr :method :url :status - :response-time ms');
+const logger = morgan('dev');
+
+export default logger;

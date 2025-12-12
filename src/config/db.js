@@ -1,3 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
+// File: src/config/db.js (KODE ESM PENUH)
+
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-module.exports = prisma;
+
+// Menggunakan ES Module default export
+export default prisma;

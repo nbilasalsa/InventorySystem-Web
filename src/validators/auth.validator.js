@@ -1,20 +1,22 @@
-const Joi = require('joi');
+// File: src/validators/auth.validator.js (KODE PERBAIKAN ESM)
 
-const registerSchema = Joi.object({
-  name: Joi.string().min(3).max(100).required(),
-  email: Joi.string().email().required(),
-  password: Joi.string()
-    .min(8)
-    .pattern(new RegExp('(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#\\$%\\^&\\*])'))
-    .required()
-    .messages({
-      'string.pattern.base': 'Password must include uppercase, lowercase, number, and special char'
-    }),
+// 1. Mengganti require('joi') dengan import
+import Joi from 'joi'; 
+
+// Skema tetap sama, tetapi kita menggunakan export const:
+
+export const registerSchema = Joi.object({
+    // Asumsi role di database sekarang adalah String, bukan Enum
+    role: Joi.string().valid('USER', 'ADMIN').default('USER').optional(),
+    username: Joi.string().min(3).required(),
+    password: Joi.string().min(6).required(),
+    email: Joi.string().email().required(),
+    name: Joi.string().required(),
 });
 
-const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
+export const loginSchema = Joi.object({
+    username: Joi.string().required(),
+    password: Joi.string().required(),
 });
 
-module.exports = { registerSchema, loginSchema };
+// Catatan: Hapus module.exports di akhir

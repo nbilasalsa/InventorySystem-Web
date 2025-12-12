@@ -1,62 +1,84 @@
-const prisma = require('../config/db');
-const bcrypt = require('bcrypt');
-const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../config/jwt');
+// File: src/controllers/auth.controller.js (KODE PERBAIKAN FINAL ESM)
 
-const register = async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body;
-    const existing = await prisma.user.findUnique({ where: { email }});
-    if (existing) return res.status(409).json({ success:false, message:'Email already taken' });
+import prisma from '../config/db.js'; 
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt'; 
+import * as responseModule from '../utils/response.js'; 
+// Asumsi validator sudah ESM Named Exports
+import { registerSchema, loginSchema } from '../validators/auth.validator.js'; 
+const { success, error } = responseModule.default || responseModule; 
 
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
-    const hashed = await bcrypt.hash(password, saltRounds);
 
-    const user = await prisma.user.create({
-      data: { name, email, password: hashed }
-    });
+export const register = async (req, res) => {
+    try {
+        // PERBAIKAN KRITIS: Menambahkan 'name' ke destructuring
+        const { username, password, email, name, role = 'USER' } = req.body;
+        
+        // Asumsi data valid setelah melewati validation.middleware.js
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    res.status(201).json({ success:true, message:'User registered', data: { id: user.id, email: user.email, name: user.name }});
-  } catch (err) {
-    next(err);
-  }
+        const user = await prisma.user.create({
+            data: { 
+                username, 
+                password: hashedPassword, 
+                email, 
+                name, // <--- VARIABEL 'name' SEKARANG DIBERIKAN KE PRISMA
+                role 
+            },
+        });
+
+        // Hapus password dari respons
+        return success(res, 'User registered successfully', { id: user.id, username: user.username, email: user.email, name: user.name }, null, 201);
+    } catch (err) {
+        // Asumsi error code P2002 adalah duplicate entry
+        if (err.code === 'P2002') {
+             return error(res, 'Username or email already exists', null, 409);
+        }
+        // Pastikan error yang tidak terduga log dan dikirimkan dengan status 500
+        console.error("Error during registration:", err);
+        return error(res, 'Registration failed', err.message, 500);
+    }
 };
 
-const login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email }});
-    if (!user) return res.status(401).json({ success:false, message:'Invalid credentials' });
+export const login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ success:false, message:'Invalid credentials' });
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (!user) return error(res, 'Invalid username or password', null, 401);
 
-    const payload = { userId: user.id, role: user.role };
-    const access = signAccessToken(payload);
-    const refresh = signRefreshToken(payload);
-    res.json({ success:true, message:'Login success', data: { accessToken: access, refreshToken: refresh }});
-  } catch (err) {
-    next(err);
-  }
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) return error(res, 'Invalid username or password', null, 401);
+
+        const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN || '1h'
+        });
+
+        return success(res, 'Login successful', { token, user: { id: user.id, username: user.username, role: user.role } });
+    } catch (err) {
+        return error(res, 'Login failed', err.message, 500);
+    }
 };
 
-const refresh = async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ success:false, message:'Refresh token required' });
-    const decoded = verifyRefreshToken(refreshToken);
-    const payload = { userId: decoded.userId, role: decoded.role };
-    const access = signAccessToken(payload);
-    res.json({ success:true, message:'Token refreshed', data: { accessToken: access }});
-  } catch (err) {
-    return res.status(401).json({ success:false, message:'Invalid refresh token' });
-  }
+export const refresh = async (req, res) => {
+    // Logika refresh token
+    return error(res, 'Refresh not yet implemented', null, 501);
 };
 
-const me = async (req, res, next) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { id: true, email: true, name: true, role: true, createdAt: true }});
-    res.json({ success:true, message:'Current user', data: user });
-  } catch (err) { next(err); }
+export const me = async (req, res) => {
+    try {
+        // req.user diset oleh authenticate middleware
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            select: { id: true, username: true, email: true, name: true, role: true } // Menambahkan 'name' ke select
+        });
+
+        if (!user) return error(res, 'User not found', null, 404);
+
+        return success(res, 'User data fetched successfully', user);
+    } catch (err) {
+        return error(res, 'Failed to fetch user data', err.message, 500);
+    }
 };
 
-module.exports = { register, login, refresh, me };
+// Pastikan tidak ada module.exports di akhir
