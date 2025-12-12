@@ -1,5 +1,3 @@
-// File: src/middleware/error.middleware.js (KODE PERBAIKAN ESM)
-
 function errorHandler(err, req, res, next) {
   console.error(err);
 

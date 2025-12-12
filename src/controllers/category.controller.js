@@ -1,10 +1,5 @@
-// File: src/controllers/category.controller.js (KODE PERBAIKAN ESM)
-
-// Hapus: import authorize / const admin = ... (Karena ini adalah Controller)
-
 import prisma from '../config/db.js'; 
 import * as responseModule from '../utils/response.js';
-// Mengambil fungsi success dan error dari modul respons
 const { success, error } = responseModule.default || responseModule; 
 
 

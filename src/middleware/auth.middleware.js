@@ -1,5 +1,3 @@
-// File: src/middleware/auth.middleware.js (KODE PERBAIKAN ESM)
-
 import jwt from 'jsonwebtoken'; 
 
 export default function authenticate(req, res, next) { 
