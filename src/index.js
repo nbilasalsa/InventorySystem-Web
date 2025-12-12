@@ -1,15 +1,11 @@
-// File: src/index.js (KODE PALING BERSIH DAN FINAL)
-
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 
-// --- Import Middleware (Sekarang semua diatur ke export default) ---
 import logger from './middleware/logger.middleware.js'; 
 import errorHandler from './middleware/error.middleware.js'; 
 
-// --- Import Routes (Sekarang semua diatur ke export default) ---
 import authRoutes from './routes/auth.routes.js';
 import productRoutes from './routes/product.routes.js';
 import categoryRoutes from './routes/category.routes.js';
