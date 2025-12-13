@@ -9,29 +9,7 @@ export const listProducts = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit || '10', 10), 50);
     const skip = (page - 1) * limit;
 
-    const { category, q, sortBy = 'createdAt', order = 'desc', minPrice, maxPrice } = req.query;
-
     const where = {};
-
-    if (category) {
-      where.category = { name: { contains: category, mode: 'insensitive' } };
-    }
-
-    if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-        { sku: { contains: q, mode: 'insensitive' } }
-      ];
-    }
-
-    if (minPrice) {
-      where.price = { ...where.price, gte: parseFloat(minPrice) };
-    }
-
-    if (maxPrice) {
-      where.price = { ...where.price, lte: parseFloat(maxPrice) };
-    }
 
     const [total, items] = await Promise.all([
       prisma.product.count({ where }),
@@ -41,7 +19,6 @@ export const listProducts = async (req, res, next) => {
           category: true,
           stocks: { include: { warehouse: true } }
         },
-        orderBy: { [sortBy]: order === 'asc' ? 'asc' : 'desc' },
         skip,
         take: limit
       })
@@ -49,10 +26,8 @@ export const listProducts = async (req, res, next) => {
 
     return success(res, 'Products list', items, {
       totalRecords: total,
-      totalPages: Math.ceil(total / limit),
       currentPage: page
     });
-
   } catch (err) {
     next(err);
   }
@@ -60,7 +35,7 @@ export const listProducts = async (req, res, next) => {
 
 export const getProduct = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -75,7 +50,6 @@ export const getProduct = async (req, res, next) => {
     }
 
     return success(res, 'Product detail', product);
-
   } catch (err) {
     next(err);
   }
@@ -85,18 +59,21 @@ export const createProduct = async (req, res, next) => {
   try {
     const { name, sku, description, price, categoryId } = req.body;
 
+    if (!name || !sku || !price || !categoryId) {
+      return error(res, 'Required fields missing', null, 400);
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
         sku,
         description,
-        price: parseFloat(price),
-        categoryId
+        price: Number(price),
+        categoryId: Number(categoryId)
       }
     });
 
     return success(res, 'Product created', product, null, 201);
-
   } catch (err) {
     next(err);
   }
@@ -104,25 +81,31 @@ export const createProduct = async (req, res, next) => {
 
 export const updateProduct = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
 
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
-      return error(res, 'Not found', null, 404);
+      return error(res, 'Product not found', null, 404);
     }
 
-    const data = req.body;
-    if (data.price) {
-      data.price = parseFloat(data.price);
+    const updateData = {};
+
+    if (req.body.name !== undefined) updateData.name = req.body.name;
+    if (req.body.sku !== undefined) updateData.sku = req.body.sku;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.price !== undefined) updateData.price = Number(req.body.price);
+    if (req.body.categoryId !== undefined) updateData.categoryId = Number(req.body.categoryId);
+
+    if (Object.keys(updateData).length === 0) {
+      return error(res, 'No data provided to update', null, 400);
     }
 
     const updated = await prisma.product.update({
       where: { id },
-      data
+      data: updateData
     });
 
     return success(res, 'Product updated', updated);
-
   } catch (err) {
     next(err);
   }
@@ -130,12 +113,11 @@ export const updateProduct = async (req, res, next) => {
 
 export const deleteProduct = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
 
     await prisma.product.delete({ where: { id } });
 
     return success(res, 'Product deleted', null, 204);
-
   } catch (err) {
     next(err);
   }
