@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import dotenv from 'dotenv'; 
+import dotenv from 'dotenv';
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -17,13 +17,15 @@ async function cleanDatabase() {
 async function main() {
   await cleanDatabase();
 
-  // 1. pengguna & admin
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  // user n admin
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const userPassword = await bcrypt.hash('user123', 10);
+
   const adminUser = await prisma.user.create({
     data: {
       username: 'admin',
       email: 'admin@mail.com',
-      password: admin123,
+      password: adminPassword, 
       name: 'Super Admin',
       role: 'ADMIN',
     },
@@ -33,25 +35,42 @@ async function main() {
     data: {
       username: 'user01',
       email: 'user01@mail.com',
-      password: await bcrypt.hash('user123', 10),
+      password: userPassword,
       name: 'Regular Staff',
       role: 'USER',
     },
   });
 
-  // 2. seeding entitas utama lain
-  const category1 = await prisma.category.create({ data: { name: 'Electronics', description: 'Gadgets and components' } });
-  const category2 = await prisma.category.create({ data: { name: 'Consumables', description: 'Office supplies' } });
+  // category
+  const category1 = await prisma.category.create({
+    data: {
+      name: 'Electronics',
+      description: 'Gadgets and components',
+    },
+  });
 
-  const warehouseA = await prisma.warehouse.create({ data: { name: 'Main Warehouse A', location: 'Jakarta' } });
-  const warehouseB = await prisma.warehouse.create({ data: { name: 'Branch Warehouse B', location: 'Surabaya' } });
+  const category2 = await prisma.category.create({
+    data: {
+      name: 'Consumables',
+      description: 'Office supplies',
+    },
+  });
 
-  // produk & stok 
-  const productA = await prisma.product.create({
+  // warehouse
+  const warehouseA = await prisma.warehouse.create({
+    data: { name: 'Main Warehouse A', location: 'Jakarta' },
+  });
+
+  const warehouseB = await prisma.warehouse.create({
+    data: { name: 'Branch Warehouse B', location: 'Surabaya' },
+  });
+
+  // produk n stok
+  await prisma.product.create({
     data: {
       name: 'Monitor LED 27"',
       sku: 'EL-MON-001',
-      price: 250.00,
+      price: 250.0,
       description: 'High-resolution monitor',
       categoryId: category1.id,
       stocks: {
@@ -63,8 +82,9 @@ async function main() {
     },
   });
 
-  console.log('Seeding finished successfully.');
+  console.log('✅ Seeding finished successfully.');
 }
+
 main()
   .catch((e) => {
     console.error(e);
